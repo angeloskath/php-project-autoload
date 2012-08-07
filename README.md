@@ -26,7 +26,7 @@
 
 ### Suggested usage
 
-Add a _.bashrc_ alias or a path to the projectwatch.py script then cd to the path you want to keep your autoloader.php . Run projectwatch.py with the project's base directory as a parameter or none if it is the current directory .
+Add a _.bashrc_ alias or a path to the projectwatch.py script then cd to the path you want to keep your autoloader.php . Run projectwatch.py with the project's base directory as a parameter or none if it is the current directory.
 
 ### Run the example
 

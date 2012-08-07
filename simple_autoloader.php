@@ -5,8 +5,8 @@
  * ! Edit with caution           *
  * * * * * * * * * * * * * * * * */
  
-class Autoloader {
-	protected static $files = array(
+ spl_autoload_register( function ($name) {
+	 static $files = array(
 <?php
 	$baseDir = strlen($finder->getLastParsedDirectory());
 	foreach ($findings as $file=>$classes) {
@@ -19,18 +19,14 @@ class Autoloader {
 ?>
 	);
 	
-	public static function loadClass($name) {
-		if (isset(self::$files[$name]))
-		{
-			include(__DIR__.self::$files[$name]);
-		}
-		else
-		{
-			throw new Exception("Class not found $name");
-		}
+	if (isset($files[$name]))
+	{
+		include(__DIR__.$files[$name]);
 	}
-}
-
-spl_autoload_register('Autoloader::loadClass');
+	else
+	{
+		throw new Exception("Class not found $name");
+	}
+ });
 
 ?>
