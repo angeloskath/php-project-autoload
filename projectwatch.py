@@ -16,6 +16,7 @@ import threading,time
 import os
 import pyinotify
 import argparse
+import re
 
 # Receives all execution commands and executes them only
 # if at least one second has passed since the last time it
@@ -41,8 +42,16 @@ class CommandExecutor:
 
 # process file system events
 class ProcessProjectChanges(pyinotify.ProcessEvent):
-	def __init__(self,c):
+	def __init__(self,c,filename,notlike):
 		self.command = c
+		try:
+			self.fname = re.compile(filename)
+		except:
+			self.fname = re.compile('.*')
+		try:
+			self.nlike = re.compile(notlike)
+		except:
+			self.nlike = re.compile('^$')
 		self.executor = CommandExecutor()
 	def process_IN_CREATE(self, event):
 		self.execute_command(event)
@@ -57,12 +66,15 @@ class ProcessProjectChanges(pyinotify.ProcessEvent):
 	def process_IN_MOVED_TO(self, event):
 		self.execute_command(event)
 	def execute_command(self,event):
-		self.executor.addAction(self.command)
+		path = event.path+'/'+event.name
+		if self.fname.match(path):
+			if self.nlike.match(path) is None:
+				self.executor.addAction(self.command)
 
 # main
-def projectwatch(folder, command):
+def projectwatch(folder, command,filename,notlike):
 	wm = pyinotify.WatchManager()
-	notifier = pyinotify.Notifier(wm, ProcessProjectChanges(command))
+	notifier = pyinotify.Notifier(wm, ProcessProjectChanges(command,filename,notlike))
 	mask = pyinotify.EventsCodes.ALL_FLAGS['IN_DELETE'] | pyinotify.EventsCodes.ALL_FLAGS['IN_CREATE'] | pyinotify.EventsCodes.ALL_FLAGS['IN_MODIFY'] | pyinotify.EventsCodes.ALL_FLAGS['IN_MOVED_TO'] | pyinotify.EventsCodes.ALL_FLAGS['IN_MOVED_FROM']
 	wdd = wm.add_watch(folder,mask,rec=True)
 	while True:
@@ -81,11 +93,17 @@ if __name__ == '__main__':
 	parser.add_argument('--script',default=os.path.dirname(os.path.realpath(__file__))+'/clsinc.php',help='The path to the php parsing script')
 	parser.add_argument('-t', '--template',default=os.path.dirname(os.path.realpath(__file__))+'/simple_autoloader.php',help='The template for the autoloader')
 	parser.add_argument('-o', '--output',default=os.getcwd()+'/autoloader.php',help='Where to save the autoloader')
+	parser.add_argument('--filename',default='.*',help='A regex to match the file name against')
+	parser.add_argument('--notlike',default='^$',help='A regex that must not match the path against')
 	
 	args = parser.parse_args()
 	cmd = args.raw
 	if cmd is None:
 		cmd = '{0} -p {1} -t {2} -o {3}'.format(args.script,args.DIR,args.template,args.output)
+	if args.raw is None and args.filename != '.*':
+		cmd += ' --match {0}'.format(args.filename)
+	if args.raw is None and args.notlike != '^$':
+		cmd += ' --nmatch {0}'.format(args.notlike)
 	
 	os.system(cmd)
-	projectwatch(args.DIR,cmd)
+	projectwatch(args.DIR,cmd,args.filename,args.notlike)

@@ -5,7 +5,7 @@ include("classesfinder.php");
 
 function printUsage($name) {
 	$usage =<<<USAGE
-Usage: ./clsinc.php [-h/--help]
+Usage: $name [-h/--help]
                     [-p/--projectdir PRJ] 
                     [-t/--template TPL]
                     [-o/--output OUT]
@@ -27,6 +27,12 @@ Options:
 -e, --extension     A comma separated list of extensions
                     to consider as php files (default is
                     just 'php')
+-m, --match         A regular expression to match the file
+                    against. If provided the extension list
+                    is ignored
+-n, --nmatch        A regular expression that the file should
+                    not match. Useful for excluding whole
+                    directories (like test dirs etc.)
 -v                  Print info in STDERR if template
                     is given
 
@@ -56,6 +62,8 @@ $longopts = array(
 	"template::",
 	"output::",
 	"extension:",
+	"match:",
+	"nmatch:",
 	"help"
 );
 $options = getopt("p:t:o:e:vh",$longopts);
@@ -75,6 +83,14 @@ if (isset($options['o']))
 {
 	$options['output'] = $options['o'];
 }
+if (isset($options['m']))
+{
+	$options['match'] = $options['m'];
+}
+if (isset($options['n']))
+{
+	$options['nmatch'] = $options['n'];
+}
 
 if (!isset($options['projectdir']) || $options['projectdir'] == '')
 {
@@ -88,6 +104,14 @@ if (is_dir($options['projectdir']))
 	if (isset($options['extension']))
 	{
 		$finder->setPermittedExtensions(explode(',',$options['extension']));
+	}
+	if (isset($options['match']))
+	{
+		$finder->setMatchExpression($options['match']);
+	}
+	if (isset($options['nmatch']))
+	{
+		$finder->setNegativeMatchExpression($options['nmatch']);
 	}
 	$start = microtime(true);
 	$finder->parseDir($options['projectdir']);

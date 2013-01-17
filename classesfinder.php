@@ -24,12 +24,48 @@ class PHPClassesFinder
 	protected $file_extensions = array(
 		'php'=>1,
 	);
+	protected $match='';
+	protected $nmatch='';
+	
 	protected $lastParsedDir;
 	
 	// utility function because SplFileInfo::getExtension was
 	// added in PHP >= 5.3.6
 	protected function getExtension(SplFileInfo $p) {
 		return array_pop(explode('.',$p->getFilename()));
+	}
+	
+	/*
+	 * If we have a match regex check the path against it first, if
+	 * it doesn't match return FALSE.
+	 * Else check against the list of file extensions.
+	 * 
+	 * After it passes the above match tests check that it doesn't
+	 * match the negative match regex (if we have one).
+	 * 
+	 * Thus one can select files and also deselect files.
+	 * 
+	 * name: shouldParse
+	 * @param $path The path to check if it should be parsed
+	 * @return bool
+	 * */
+	protected function shouldParse($path) {
+		if (strlen($this->match)>2)
+		{
+			if (!preg_match($this->match,$path))
+				return false;
+		}
+		else
+		{
+			if (!isset($this->file_extensions[$this->getExtension($path)]))
+				return false;
+		}
+		if (strlen($this->nmatch)>2)
+		{
+			if (preg_match($this->nmatch,$path))
+				return false;
+		}
+		return true;
 	}
 	
 	/*
@@ -49,7 +85,7 @@ class PHPClassesFinder
 		);
 		foreach ($iterator as $path)
 		{
-			if (!$path->isDir() && isset($this->file_extensions[$this->getExtension($path)]))
+			if (!$path->isDir() && $this->shouldParse($path))
 			{
 				$this->parseFile($path);
 			}
@@ -138,6 +174,18 @@ class PHPClassesFinder
 	// only files matching those extensions are processed
 	public  function setPermittedExtensions(array $exts) {
 		$this->file_extensions = array_combine(array_values($exts),range(1,count($exts)));
+	}
+	
+	// set the match expression
+	// if set only files that match are processed
+	public function setMatchExpression($match) {
+		$this->match = "#$match#";
+	}
+	
+	// set the negative match
+	// if set only files that DO NOT match are processed
+	public function setNegativeMatchExpression($nmatch) {
+		$this->nmatch = "#$nmatch#";
 	}
 
 	// Simple getter functions for the parsed data or stats
